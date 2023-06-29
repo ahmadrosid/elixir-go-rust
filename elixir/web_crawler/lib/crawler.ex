@@ -1,24 +1,38 @@
 defmodule WebCrawler do
-  def start(url) do
+  @max_concurrency 10
+  def start(url, max_concurrency \\ @max_concurrency) do
     total =
       Utils.measure(fn ->
-        WebCrawler.run(url, fn doc ->
-          doc
-          |> Floki.find("a")
-          |> Enum.map(&Floki.attribute(&1, "href"))
-          |> List.flatten()
-          |> Enum.filter(&(!String.starts_with?(&1, "#")))
-        end)
+        WebCrawler.run(
+          url,
+          fn doc ->
+            doc
+            |> Floki.find("a[href]")
+            |> Floki.attribute("href")
+            |> Enum.map(&URI.merge(url, &1))
+            |> Enum.map(&Utils.clean_url(&1))
+            |> Enum.filter(&same_host?(url, &1))
+          end,
+          max_concurrency
+        )
         |> Enum.into([])
+        |> Enum.uniq()
       end)
-      |> Enum.reject(fn x -> x == "" end)
-      |> length
 
-    IO.puts("Total links scraped: #{total}")
+    IO.puts("Total links scraped: #{length(total)}")
   end
 
-  def run(start_url, scraper_fun) do
-    IO.puts("Start crawling for #{start_url}")
+  defp same_host?(base_url, url) do
+    URI.parse(url)
+    |> Map.get(:host)
+    |> case do
+      nil -> false
+      host -> URI.parse(base_url) |> Map.get(:host) == host
+    end
+  end
+
+  def run(start_url, scraper_fun, max_concurrency) do
+    IO.puts("Start crawling: #{start_url}")
 
     Stream.resource(
       fn -> {[start_url], []} end,
@@ -27,7 +41,7 @@ defmodule WebCrawler do
           {:halt, []}
 
         {urls, found_urls} ->
-          {new_urls, data} = crawl(urls, scraper_fun)
+          {new_urls, data} = crawl(urls, scraper_fun, max_concurrency)
 
           new_urls =
             new_urls
@@ -37,29 +51,27 @@ defmodule WebCrawler do
             |> Enum.map(&to_string/1)
             |> Enum.reject(&Enum.member?(found_urls, &1))
 
-          {data, {new_urls, found_urls ++ new_urls}}
+          {data, {new_urls, new_urls ++ found_urls}}
       end,
       fn _ -> IO.puts("Finished crawling for '#{start_url}'.") end
     )
   end
 
-  defp crawl(urls, scraper_fun) when is_list(urls) do
-    IO.puts("Start async crawler!")
-
+  defp crawl(urls, scraper_fun, max_concurrency) when is_list(urls) do
     urls
-    |> Task.async_stream(&crawl(&1, scraper_fun),
+    |> Task.async_stream(&crawl(&1, scraper_fun, max_concurrency),
       ordered: false,
-      timeout: 15_000 * 100,
-      max_concurrency: 100
+      timeout: 15_000 * max_concurrency,
+      max_concurrency: max_concurrency
     )
     |> Enum.into([], fn {_key, value} -> value end)
-    # |> Enum.map(&crawl(&1, scraper_fun))
+    # |> Enum.map(&crawl(&1, scraper_fun)) #run without concurrency
     |> Enum.reduce({[], []}, fn {scraped_urls, scraped_data}, {acc_urls, acc_data} ->
       {scraped_urls ++ acc_urls, scraped_data ++ acc_data}
     end)
   end
 
-  defp crawl(url, scraper_fun) when is_binary(url) do
+  defp crawl(url, scraper_fun, _max_concurrency) when is_binary(url) do
     IO.puts(IO.ANSI.green() <> "#{inspect(self())} Scraping url: #{url}" <> IO.ANSI.reset())
 
     user_agent_headers = [
