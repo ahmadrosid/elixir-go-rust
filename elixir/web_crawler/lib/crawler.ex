@@ -32,8 +32,6 @@ defmodule WebCrawler do
   end
 
   def run(start_url, scraper_fun, max_concurrency) do
-    IO.puts("Start crawling: #{start_url}")
-
     Stream.resource(
       fn -> {[start_url], []} end,
       fn
