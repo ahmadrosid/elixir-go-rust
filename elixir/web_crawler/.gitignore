@@ -24,3 +24,5 @@ web_crawler-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+web_crawler

@@ -19,7 +19,7 @@ defmodule WebCrawler do
         |> Enum.uniq()
       end)
 
-    IO.puts("Total links scraped: #{length(total)}")
+    IO.puts("Total links scraped: #{length(total)}, concurrency: #{max_concurrency}")
   end
 
   defp same_host?(base_url, url) do

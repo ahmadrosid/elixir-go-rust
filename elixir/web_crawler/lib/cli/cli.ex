@@ -7,16 +7,16 @@ defmodule WebCrawler.CLI do
 
   defp parse_args(args) do
     args
-    |> OptionParser.parse(strict: [site: :string, worker: :string, help: :boolean])
+    |> OptionParser.parse(strict: [url: :string, worker: :string, help: :boolean])
     |> elem(0)
   end
 
   def execute(help: true) do
     IO.puts("""
-    usage: web_crawler [--help] [--site=<url>] [--worker=<int>]
+    usage: web_crawler [--help] [--url=<url>] [--worker=<int>]
 
     The most common use case is:
-      $ web_crawler --site https://react.dev/ --worker 5
+      $ web_crawler --url https://react.dev/ --worker 5
 
     It will crawl the website fetching all the urls within the same
     domain and save them to a text file in the same directory where
@@ -24,12 +24,12 @@ defmodule WebCrawler.CLI do
     """)
   end
 
-  def execute(site: site) do
-    WebCrawler.start(site, 10)
+  def execute(url: url) do
+    WebCrawler.start(url, 10)
   end
 
-  def execute(site: site, worker: worker) do
-    WebCrawler.start(site, String.to_integer(worker))
+  def execute(url: url, worker: worker) do
+    WebCrawler.start(url, String.to_integer(worker))
   end
 
   def execute(_) do
