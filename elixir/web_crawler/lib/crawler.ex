@@ -59,7 +59,7 @@ defmodule WebCrawler do
     urls
     |> Task.async_stream(&crawl(&1, scraper_fun, max_concurrency),
       ordered: false,
-      timeout: 15_000 * max_concurrency,
+      timeout: 15_000,
       max_concurrency: max_concurrency
     )
     |> Enum.into([], fn {_key, value} -> value end)

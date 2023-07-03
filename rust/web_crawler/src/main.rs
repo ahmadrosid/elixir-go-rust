@@ -29,7 +29,7 @@ async fn main() {
         let worker_count = cli.worker;
 
         let crawler = Crawler::new(worker_count);
-        let spider = Arc::new(spiders::web::WebSpider::new(url));
+        let spider = Arc::new(spiders::web::WebSpider::new(url, worker_count));
         crawler.run(spider).await
     }
     .await;

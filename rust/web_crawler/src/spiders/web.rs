@@ -21,7 +21,7 @@ pub struct WebSpider {
 }
 
 impl WebSpider {
-    pub fn new(start_url: String) -> Self {
+    pub fn new(start_url: String, worker: usize) -> Self {
         let http_timeout = Duration::from_secs(5);
 
         let http_client = Client::builder()
@@ -29,11 +29,11 @@ impl WebSpider {
             .user_agent(
                 "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
             )
-            .pool_idle_timeout(Duration::from_secs(30))
-            .pool_max_idle_per_host(2)
+            .pool_idle_timeout(Duration::from_secs(15))
+            .pool_max_idle_per_host(1)
             .build()
             .expect("WebSpider: Building HTTP client");
-        let semaphore = Arc::new(Semaphore::new(100));
+        let semaphore = Arc::new(Semaphore::new(worker));
 
         let client = MyClient {
             http_client,
@@ -56,7 +56,7 @@ impl super::Spider for WebSpider {
     }
 
     async fn scrape(&self, url: String) -> Result<(Vec<String>, Vec<String>), Error> {
-        // println!("Scraping: {}", &url);
+        println!("Scraping url: {}", &url);
         let raw_url = Url::parse(&url)?;
         let host = raw_url.scheme().to_owned() + "://" + raw_url.host_str().unwrap();
 
@@ -73,7 +73,7 @@ impl super::Spider for WebSpider {
             .await?;
 
         let seconds = start.elapsed().as_secs_f64();
-        if seconds > 2.0 {
+        if seconds > 3.0 {
             println!(
                 "Parsing res body: {} in \x1B[32m{:.2}s\x1B[0m",
                 &url, seconds
