@@ -13,15 +13,8 @@ const maxRetries = 3
 
 func Request(url string) ([]byte, error) {
 	ctx := context.Background()
-	transport := &http.Transport{
-		MaxIdleConns:        100,
-		IdleConnTimeout:     30 * time.Second,
-		MaxIdleConnsPerHost: 2,
-	}
-
 	client := &http.Client{
-		Timeout:   5 * time.Second,
-		Transport: transport,
+		Timeout: 5 * time.Second,
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -51,10 +44,17 @@ func Request(url string) ([]byte, error) {
 		}
 
 		defer resp.Body.Close()
+		start := time.Now()
+
 		bodyContent, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Println(err)
 			return nil, err
+		}
+		elapsed := time.Since(start)
+		seconds := elapsed.Seconds()
+		if seconds > 2 {
+			fmt.Printf("Read response body to string %s in: \033[32m%f s\033[0m\n", url, seconds)
 		}
 
 		return bodyContent, nil

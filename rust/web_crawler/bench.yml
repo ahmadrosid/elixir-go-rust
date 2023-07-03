@@ -1,0 +1,11 @@
+---
+base: "https://web.dev"
+iterations: 100
+concurrency: 5
+rampup: 2
+
+plan:
+  - name: Fetch landing
+    request:
+      url: /
+      method: GET

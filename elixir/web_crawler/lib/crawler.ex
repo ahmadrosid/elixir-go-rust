@@ -70,7 +70,7 @@ defmodule WebCrawler do
   end
 
   defp crawl(url, scraper_fun, _max_concurrency) when is_binary(url) do
-    IO.puts(IO.ANSI.green() <> "#{inspect(self())} Scraping url: #{url}" <> IO.ANSI.reset())
+    IO.puts("#{inspect(self())} Scraping url: #{url}")
 
     user_agent_headers = [
       {"User-Agent",
@@ -82,7 +82,7 @@ defmodule WebCrawler do
             HTTPoison.get(url, user_agent_headers,
               timeout: 15_000,
               recv_timeout: 15_000,
-              follow_redirect: true,
+              follow_redirect: false,
               hackney: [pool: :default]
             )},
          {:parse, {:ok, parsed_document}} <- {:parse, Floki.parse_document(body)} do

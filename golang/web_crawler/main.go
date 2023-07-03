@@ -49,7 +49,7 @@ func (w *WebCrawler) crawl(rawURL string) {
 	w.visitedURL[rawURL] = true
 	w.mutex.Unlock()
 
-	fmt.Printf("Start crawling: %s \n", rawURL)
+	// fmt.Printf("Start crawling: %s \n", rawURL)
 	parsedRawUrl, err := url.Parse(rawURL)
 	if err != nil {
 		fmt.Println(err)
@@ -97,7 +97,7 @@ func (w *WebCrawler) crawl(rawURL string) {
 
 func main() {
 	maxGoroutines := flag.Int("worker", 10, "the maximum number of goroutines for crawling")
-	url := flag.String("url", "https://react.dev/", "the URL to crawl")
+	url := flag.String("url", "https://http.dev/", "the URL to crawl")
 	flag.Parse()
 
 	result := utils.Measure(func() interface{} {
