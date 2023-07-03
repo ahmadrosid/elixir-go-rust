@@ -24,7 +24,7 @@ impl Crawler {
         }
     }
 
-    pub async fn run<T: Send + 'static>(&self, spider: Arc<dyn Spider<Item = T>>) -> usize {
+    pub async fn run<T: Send + 'static>(&self, spider: Arc<dyn Spider<Item = String>>) -> usize {
         let mut visited_urls = HashSet::<String>::new();
         let crawling_concurrency = self.crawling_concurrency;
         let crawling_queue_capacity = crawling_concurrency * 400;
@@ -81,10 +81,10 @@ impl Crawler {
         return visited_urls.len();
     }
 
-    fn launch_scrapers<T: Send + 'static>(
+    fn launch_scrapers(
         &self,
         concurrency: usize,
-        spider: Arc<dyn Spider<Item = T>>,
+        spider: Arc<dyn Spider<Item = String>>,
         urls_to_visit: mpsc::Receiver<String>,
         new_urls_tx: mpsc::Sender<(String, Vec<String>)>,
         active_spiders: Arc<AtomicUsize>,
@@ -96,7 +96,7 @@ impl Crawler {
                     let queued_url = queued_url.clone();
                     async {
                         active_spiders.fetch_add(1, Ordering::SeqCst);
-                        let mut urls = Vec::new();
+                        let mut urls: Vec<String> = Vec::new();
                         let res = spider
                             .scrape(queued_url.clone())
                             .await
@@ -106,7 +106,7 @@ impl Crawler {
                             })
                             .ok();
 
-                        if let Some((_, new_urls)) = res {
+                        if let Some(new_urls) = res {
                             urls = new_urls;
                         }
 

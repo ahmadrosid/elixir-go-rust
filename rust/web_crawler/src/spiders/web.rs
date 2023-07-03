@@ -3,43 +3,33 @@ use async_trait::async_trait;
 
 use reqwest::Client;
 use scraper::{Html, Selector};
-use std::sync::Arc;
 use std::time::Instant;
-use tokio::sync::Semaphore;
 use tokio::time::Duration;
 use url::Url;
 
-#[derive(Clone)]
-struct MyClient {
-    http_client: reqwest::Client,
-    semaphore: Arc<tokio::sync::Semaphore>,
-}
-
 pub struct WebSpider {
-    client: MyClient,
+    http_client: reqwest::Client,
     start_url: String,
 }
 
 impl WebSpider {
     pub fn new(start_url: String, worker: usize) -> Self {
-        let http_timeout = Duration::from_secs(5);
+        let http_timeout = Duration::from_secs(4);
 
         let http_client = Client::builder()
             .timeout(http_timeout)
             .user_agent(
                 "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
             )
-            .pool_idle_timeout(Duration::from_secs(15))
-            .pool_max_idle_per_host(1)
+            .pool_idle_timeout(http_timeout)
+            .pool_max_idle_per_host(worker)
             .build()
             .expect("WebSpider: Building HTTP client");
-        let semaphore = Arc::new(Semaphore::new(worker));
 
-        let client = MyClient {
+        WebSpider {
             http_client,
-            semaphore,
-        };
-        WebSpider { client, start_url }
+            start_url,
+        }
     }
 }
 
@@ -55,22 +45,13 @@ impl super::Spider for WebSpider {
         self.start_url.to_string()
     }
 
-    async fn scrape(&self, url: String) -> Result<(Vec<String>, Vec<String>), Error> {
+    async fn scrape(&self, url: String) -> Result<Vec<String>, Error> {
         println!("Scraping url: {}", &url);
         let raw_url = Url::parse(&url)?;
         let host = raw_url.scheme().to_owned() + "://" + raw_url.host_str().unwrap();
 
         let start = Instant::now();
-        let permit = self.client.semaphore.acquire().await?;
-
-        let body_content = self
-            .client
-            .http_client
-            .get(&url)
-            .send()
-            .await?
-            .text()
-            .await?;
+        let body_content = self.http_client.get(&url).send().await?.text().await?;
 
         let seconds = start.elapsed().as_secs_f64();
         if seconds > 3.0 {
@@ -103,7 +84,6 @@ impl super::Spider for WebSpider {
             })
             .collect();
 
-        drop(permit);
-        Ok((vec![], links))
+        Ok(links)
     }
 }

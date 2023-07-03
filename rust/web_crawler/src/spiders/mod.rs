@@ -9,5 +9,5 @@ pub trait Spider: Send + Sync {
 
     fn name(&self) -> String;
     fn start_url(&self) -> String;
-    async fn scrape(&self, url: String) -> Result<(Vec<Self::Item>, Vec<String>), Error>;
+    async fn scrape(&self, url: String) -> Result<Vec<Self::Item>, Error>;
 }
