@@ -12,6 +12,7 @@ import (
 const maxRetries = 3
 
 func Request(url string) ([]byte, error) {
+	fmt.Printf("Visiting %s\n", url)
 	ctx := context.Background()
 	client := &http.Client{
 		Timeout: 5 * time.Second,
